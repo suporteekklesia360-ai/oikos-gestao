@@ -715,6 +715,52 @@ html, body {
   transform: translateX(-50%) translateY(0);
 }
 
+/* ── BADGE FUTURO ── */
+.badge-futuro {
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: rgba(74,124,158,0.15);
+  color: #4A7C9E;
+  border: 1px solid rgba(74,124,158,0.3);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* Transação futura — aparência diferenciada */
+.transacao-item.futura {
+  opacity: 0.75;
+  border-style: dashed;
+}
+
+/* Botões de ação na lista */
+.tr-acoes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.tr-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 3px 5px;
+  opacity: 0.45;
+  transition: opacity 0.2s;
+  border-radius: 4px;
+  line-height: 1;
+}
+
+.tr-btn:hover { opacity: 1; }
+.tr-btn.edit:hover { background: rgba(201,168,76,0.1); color: var(--gold); }
+.tr-btn.baixar:hover { background: rgba(76,175,125,0.1); color: var(--success); }
+.tr-btn.del:hover { background: var(--danger-soft); color: var(--danger); }
+
 /* ── MODAL CONFIRMAÇÃO ── */
 .confirm-overlay {
   position: fixed;
@@ -1144,7 +1190,7 @@ html, body {
   <div class="content" id="tab-transacoes">
     <div class="lista-header">
       <div class="lista-titulo">Lançamentos</div>
-      <button class="btn-add" onclick="abrirModal()">+</button>
+      <button class="btn-add" onclick="abrirModal(null)">+</button>
     </div>
     <div id="listaTransacoes"></div>
   </div>
@@ -1329,11 +1375,19 @@ html, body {
     </div>
 
     <div class="form-group">
-      <label class="form-label">Data do lançamento</label>
+      <label class="form-label">Data</label>
       <input type="date" class="form-input" id="trData">
     </div>
 
-    <button class="btn-salvar" onclick="salvarTransacao()">Salvar lançamento</button>
+    <div class="form-group">
+      <label class="form-label">Status</label>
+      <div class="tipo-toggle">
+        <button class="tipo-btn active-entrada" id="btnRealizado" onclick="setStatus('realizado')">✓ Realizado</button>
+        <button class="tipo-btn" id="btnFuturo" onclick="setStatus('futuro')">⏳ Futuro</button>
+      </div>
+    </div>
+
+    <button class="btn-salvar" id="btnSalvarTr" onclick="salvarTransacao()">Salvar lançamento</button>
     <button style="width:100%;background:none;border:none;color:var(--muted);padding:12px;cursor:pointer;font-family:Jost,sans-serif;font-size:13px;margin-top:4px" onclick="fecharModal()">Cancelar</button>
   </div>
 </div>
@@ -1700,6 +1754,61 @@ function setTipo(t) {
   gc.style.display = t === 'saida' ? 'block' : 'none';
 }
 
+let statusAtual = 'realizado';
+let editandoId = null;
+
+function setStatus(s) {
+  statusAtual = s;
+  const br = document.getElementById('btnRealizado');
+  const bf = document.getElementById('btnFuturo');
+  br.className = 'tipo-btn' + (s === 'realizado' ? ' active-entrada' : '');
+  bf.className = 'tipo-btn' + (s === 'futuro' ? ' active-entrada' : '');
+  if (s === 'futuro') {
+    bf.style.background = 'rgba(74,124,158,0.15)';
+    bf.style.borderColor = '#4A7C9E';
+    bf.style.color = '#4A7C9E';
+  } else {
+    bf.style.background = '';
+    bf.style.borderColor = '';
+    bf.style.color = '';
+  }
+}
+
+function abrirModal(tr) {
+  editandoId = tr ? tr.id : null;
+  document.getElementById('trDesc').value = tr ? tr.desc : '';
+  document.getElementById('trValor').value = tr ? tr.valor : '';
+  document.getElementById('trCategoria').value = tr ? tr.categoria : 'necessidades';
+  statusAtual = tr ? (tr.status || 'realizado') : 'realizado';
+  setStatus(statusAtual);
+
+  // Data
+  if (tr && tr.dataISO) {
+    document.getElementById('trData').value = tr.dataISO;
+  } else if (tr && tr.data) {
+    // converte dd/mm/yyyy -> yyyy-mm-dd
+    const parts = tr.data.split('/');
+    if (parts.length === 3) document.getElementById('trData').value = `${parts[2]}-${parts[1]}-${parts[0]}`;
+    else document.getElementById('trData').value = new Date().toISOString().split('T')[0];
+  } else {
+    document.getElementById('trData').value = new Date().toISOString().split('T')[0];
+  }
+
+  if (tr) setTipo(tr.tipo); else setTipo('entrada');
+
+  const titulo = document.querySelector('#modalTransacao .modal-title');
+  titulo.textContent = tr ? 'Editar lançamento' : 'Novo lançamento';
+  document.getElementById('btnSalvarTr').textContent = tr ? 'Salvar alterações' : 'Salvar lançamento';
+
+  document.getElementById('modalTransacao').classList.add('open');
+  setTimeout(() => document.getElementById('trDesc').focus(), 300);
+}
+
+function fecharModal() {
+  document.getElementById('modalTransacao').classList.remove('open');
+  editandoId = null;
+}
+
 function salvarTransacao() {
   const desc = document.getElementById('trDesc').value.trim();
   const valorRaw = document.getElementById('trValor').value.replace(',', '.');
@@ -1710,35 +1819,39 @@ function salvarTransacao() {
   if (!desc) { toast('Adicione uma descrição'); return; }
   if (!valor || isNaN(valor) || valor <= 0) { toast('Informe um valor válido'); return; }
 
-  // Formata a data para pt-BR
   let dataFormatada = new Date().toLocaleDateString('pt-BR');
   if (dataInput) {
     const [y, m, d] = dataInput.split('-');
     dataFormatada = `${d}/${m}/${y}`;
   }
 
-  const tipoLabel = tipoAtual === 'entrada' ? 'entrada' : 'saída';
   const valorFmt = 'R$ ' + valor.toFixed(2).replace('.', ',');
+  const isEdit = !!editandoId;
 
   confirmar(
     tipoAtual === 'entrada' ? '💰' : '💸',
-    'Confirmar lançamento',
-    `${desc} · ${valorFmt} · ${dataFormatada}`,
+    isEdit ? 'Salvar alterações' : 'Confirmar lançamento',
+    `${desc} · ${valorFmt} · ${dataFormatada}${statusAtual === 'futuro' ? ' · Futuro' : ''}`,
     false,
     () => {
       const dados = getDados();
-      dados.transacoes.unshift({
-        id: Date.now(),
-        desc,
-        valor,
-        tipo: tipoAtual,
-        categoria: cat,
-        data: dataFormatada
-      });
+      const novoItem = {
+        id: isEdit ? editandoId : Date.now(),
+        desc, valor, tipo: tipoAtual, categoria: cat,
+        data: dataFormatada,
+        dataISO: dataInput,
+        status: statusAtual
+      };
+      if (isEdit) {
+        const idx = dados.transacoes.findIndex(t => t.id === editandoId);
+        if (idx !== -1) dados.transacoes[idx] = novoItem;
+      } else {
+        dados.transacoes.unshift(novoItem);
+      }
       salvarDados(dados);
       fecharModal();
       atualizar();
-      toast(`✓ ${tipoLabel.charAt(0).toUpperCase() + tipoLabel.slice(1)} registrada!`);
+      toast(isEdit ? '✓ Lançamento atualizado!' : `✓ ${tipoAtual === 'entrada' ? 'Entrada' : 'Saída'} registrada!`);
     }
   );
 }
@@ -1755,6 +1868,35 @@ function deletarTransacao(id, desc) {
       salvarDados(dados);
       atualizar();
       toast('✓ Lançamento removido');
+    }
+  );
+}
+
+function editarTransacao(id) {
+  const dados = getDados();
+  const tr = dados.transacoes.find(t => t.id === id);
+  if (tr) abrirModal(tr);
+}
+
+function baixarTransacao(id, desc) {
+  confirmar(
+    '✅',
+    'Baixar lançamento',
+    `Confirmar que "${desc}" foi realizado?`,
+    false,
+    () => {
+      const dados = getDados();
+      const tr = dados.transacoes.find(t => t.id === id);
+      if (tr) {
+        tr.status = 'realizado';
+        // Atualiza data para hoje se ainda não tinha
+        const hoje = new Date().toLocaleDateString('pt-BR');
+        tr.data = hoje;
+        tr.dataISO = new Date().toISOString().split('T')[0];
+      }
+      salvarDados(dados);
+      atualizar();
+      toast('✓ Lançamento baixado!');
     }
   );
 }
@@ -1909,16 +2051,24 @@ function atualizar() {
   } else {
     const icones = { necessidades:'🏠', desejos:'✨', futuro:'🌱', dividas:'⚡', outros:'📦', entrada:'💰' };
     const catLabel = { necessidades:'Necessidades', desejos:'Desejos', futuro:'Futuro/Poupança', dividas:'Dívidas', outros:'Outros', entrada:'Receita' };
-    lista.innerHTML = ts.map(t => `
-      <div class="transacao-item">
+    lista.innerHTML = ts.map(t => {
+      const isFuturo = t.status === 'futuro';
+      const descEsc = t.desc.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+      return `
+      <div class="transacao-item${isFuturo ? ' futura' : ''}">
         <div class="tr-icone ${t.tipo === 'entrada' ? 'entrada-bg' : 'saida-bg'}">${t.tipo === 'entrada' ? '💰' : (icones[t.categoria] || '📦')}</div>
         <div class="tr-info">
-          <div class="tr-desc">${t.desc}</div>
+          <div class="tr-desc">${t.desc}${isFuturo ? ' <span class="badge-futuro">futuro</span>' : ''}</div>
           <div class="tr-cat">${catLabel[t.categoria] || t.categoria} · ${t.data}</div>
         </div>
         <div class="tr-valor ${t.tipo === 'entrada' ? 'e' : 's'}">${t.tipo === 'entrada' ? '+' : '-'}${fmt(t.valor)}</div>
-        <button class="tr-delete" onclick="deletarTransacao(${t.id}, '${t.desc.replace(/'/g, "\\'")}')">✕</button>
-      </div>`).join('');
+        <div class="tr-acoes">
+          <button class="tr-btn edit" onclick="editarTransacao(${t.id})" title="Editar">✏️</button>
+          ${isFuturo ? `<button class="tr-btn baixar" onclick="baixarTransacao(${t.id}, '${descEsc}')" title="Baixar">✅</button>` : ''}
+          <button class="tr-btn del" onclick="deletarTransacao(${t.id}, '${descEsc}')" title="Excluir">🗑️</button>
+        </div>
+      </div>`;
+    }).join('');
   }
 
   const diaIdx = new Date().getDate() % DICAS.length;
