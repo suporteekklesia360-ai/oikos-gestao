@@ -715,7 +715,89 @@ html, body {
   transform: translateX(-50%) translateY(0);
 }
 
-/* ── TELA DE BLOQUEIO ── */
+/* ── MODAL CONFIRMAÇÃO ── */
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(13,17,23,0.88);
+  backdrop-filter: blur(6px);
+  z-index: 200;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.confirm-overlay.open { display: flex; }
+
+.confirm-box {
+  background: var(--deep2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 28px 24px;
+  width: 100%;
+  max-width: 320px;
+  text-align: center;
+  animation: popIn 0.25s ease;
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.confirm-icon { font-size: 36px; margin-bottom: 12px; }
+
+.confirm-titulo {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 20px;
+  color: var(--white);
+  margin-bottom: 8px;
+}
+
+.confirm-msg {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.6;
+  margin-bottom: 22px;
+}
+
+.confirm-btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.confirm-nao {
+  background: var(--deep3);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 8px;
+  padding: 12px;
+  font-family: 'Jost', sans-serif;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.confirm-nao:hover { background: var(--deep4); }
+
+.confirm-sim {
+  background: var(--gold);
+  border: none;
+  color: var(--deep);
+  border-radius: 8px;
+  padding: 12px;
+  font-family: 'Jost', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.confirm-sim:hover { background: var(--gold-light); }
+.confirm-sim.danger { background: var(--danger); color: white; }
+.confirm-sim.danger:hover { background: #c44; }
 .lock-screen {
   position: fixed;
   inset: 0;
@@ -1232,7 +1314,7 @@ html, body {
 
     <div class="form-group">
       <label class="form-label">Valor (R$)</label>
-      <input type="number" class="form-input" id="trValor" placeholder="0,00" step="0.01">
+      <input type="number" class="form-input" id="trValor" placeholder="0.00" step="0.01" inputmode="decimal">
     </div>
 
     <div class="form-group" id="grupoCategoria">
@@ -1244,6 +1326,11 @@ html, body {
         <option value="dividas">⚡ Dívidas</option>
         <option value="outros">📦 Outros</option>
       </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Data do lançamento</label>
+      <input type="date" class="form-input" id="trData">
     </div>
 
     <button class="btn-salvar" onclick="salvarTransacao()">Salvar lançamento</button>
@@ -1274,6 +1361,19 @@ html, body {
 
     <button class="btn-salvar" onclick="salvarMeta()">Criar meta</button>
     <button style="width:100%;background:none;border:none;color:var(--muted);padding:12px;cursor:pointer;font-family:Jost,sans-serif;font-size:13px;margin-top:4px" onclick="fecharModalMeta()">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAÇÃO -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <div class="confirm-icon" id="confirmIcon">⚠️</div>
+    <div class="confirm-titulo" id="confirmTitulo">Confirmar</div>
+    <div class="confirm-msg" id="confirmMsg">Tem certeza?</div>
+    <div class="confirm-btns">
+      <button class="confirm-nao" onclick="fecharConfirm()">Cancelar</button>
+      <button class="confirm-sim" id="confirmSimBtn" onclick="executarConfirm()">Confirmar</button>
+    </div>
   </div>
 </div>
 
@@ -1385,12 +1485,19 @@ function desbloquear() {
 }
 
 function sair() {
-  if (!confirm('Sair da conta? Você precisará digitar a senha novamente.')) return;
-  document.getElementById('lockInput').value = '';
-  document.getElementById('lockErro').textContent = '';
-  document.getElementById('lockFormArea').style.display = 'block';
-  document.getElementById('lockPrimeiroAcesso').style.display = 'none';
-  document.getElementById('lockScreen').style.display = 'flex';
+  confirmar(
+    '🔒',
+    'Sair da conta',
+    'Você precisará digitar a senha novamente para acessar.',
+    false,
+    () => {
+      document.getElementById('lockInput').value = '';
+      document.getElementById('lockErro').textContent = '';
+      document.getElementById('lockFormArea').style.display = 'block';
+      document.getElementById('lockPrimeiroAcesso').style.display = 'none';
+      document.getElementById('lockScreen').style.display = 'flex';
+    }
+  );
 }
 
 function toggleSenhaVisivel() {
@@ -1544,11 +1651,38 @@ function setTab(tab, btn) {
   if (tab === 'perfil') carregarPerfil();
 }
 
+// ── CONFIRMAÇÃO ──
+let _confirmCallback = null;
+
+function confirmar(icone, titulo, msg, danger, callback) {
+  document.getElementById('confirmIcon').textContent = icone;
+  document.getElementById('confirmTitulo').textContent = titulo;
+  document.getElementById('confirmMsg').textContent = msg;
+  const btn = document.getElementById('confirmSimBtn');
+  btn.className = 'confirm-sim' + (danger ? ' danger' : '');
+  btn.textContent = danger ? 'Excluir' : 'Confirmar';
+  _confirmCallback = callback;
+  document.getElementById('confirmOverlay').classList.add('open');
+}
+
+function fecharConfirm() {
+  document.getElementById('confirmOverlay').classList.remove('open');
+  _confirmCallback = null;
+}
+
+function executarConfirm() {
+  fecharConfirm();
+  if (_confirmCallback) _confirmCallback();
+}
+
 // ── MODAL TRANSAÇÃO ──
 function abrirModal() {
   document.getElementById('trDesc').value = '';
   document.getElementById('trValor').value = '';
   document.getElementById('trCategoria').value = 'necessidades';
+  // Define hoje como data padrão
+  const hoje = new Date().toISOString().split('T')[0];
+  document.getElementById('trData').value = hoje;
   setTipo('entrada');
   document.getElementById('modalTransacao').classList.add('open');
   setTimeout(() => document.getElementById('trDesc').focus(), 300);
@@ -1568,23 +1702,61 @@ function setTipo(t) {
 
 function salvarTransacao() {
   const desc = document.getElementById('trDesc').value.trim();
-  const valor = parseFloat(document.getElementById('trValor').value);
+  const valorRaw = document.getElementById('trValor').value.replace(',', '.');
+  const valor = parseFloat(valorRaw);
   const cat = tipoAtual === 'saida' ? document.getElementById('trCategoria').value : 'entrada';
+  const dataInput = document.getElementById('trData').value;
+
   if (!desc) { toast('Adicione uma descrição'); return; }
-  if (!valor || valor <= 0) { toast('Informe um valor válido'); return; }
-  const dados = getDados();
-  dados.transacoes.unshift({ id: Date.now(), desc, valor, tipo: tipoAtual, categoria: cat, data: new Date().toLocaleDateString('pt-BR') });
-  salvarDados(dados);
-  fecharModal();
-  atualizar();
-  toast(tipoAtual === 'entrada' ? '✓ Entrada registrada' : '✓ Saída registrada');
+  if (!valor || isNaN(valor) || valor <= 0) { toast('Informe um valor válido'); return; }
+
+  // Formata a data para pt-BR
+  let dataFormatada = new Date().toLocaleDateString('pt-BR');
+  if (dataInput) {
+    const [y, m, d] = dataInput.split('-');
+    dataFormatada = `${d}/${m}/${y}`;
+  }
+
+  const tipoLabel = tipoAtual === 'entrada' ? 'entrada' : 'saída';
+  const valorFmt = 'R$ ' + valor.toFixed(2).replace('.', ',');
+
+  confirmar(
+    tipoAtual === 'entrada' ? '💰' : '💸',
+    'Confirmar lançamento',
+    `${desc} · ${valorFmt} · ${dataFormatada}`,
+    false,
+    () => {
+      const dados = getDados();
+      dados.transacoes.unshift({
+        id: Date.now(),
+        desc,
+        valor,
+        tipo: tipoAtual,
+        categoria: cat,
+        data: dataFormatada
+      });
+      salvarDados(dados);
+      fecharModal();
+      atualizar();
+      toast(`✓ ${tipoLabel.charAt(0).toUpperCase() + tipoLabel.slice(1)} registrada!`);
+    }
+  );
 }
 
-function deletarTransacao(id) {
-  const dados = getDados();
-  dados.transacoes = dados.transacoes.filter(t => t.id !== id);
-  salvarDados(dados);
-  atualizar();
+function deletarTransacao(id, desc) {
+  confirmar(
+    '🗑️',
+    'Excluir lançamento',
+    `Remover "${desc}"? Esta ação não pode ser desfeita.`,
+    true,
+    () => {
+      const dados = getDados();
+      dados.transacoes = dados.transacoes.filter(t => t.id !== id);
+      salvarDados(dados);
+      atualizar();
+      toast('✓ Lançamento removido');
+    }
+  );
 }
 
 // ── MODAL META ──
@@ -1603,13 +1775,22 @@ function salvarMeta() {
   const atual = parseFloat(document.getElementById('metaAtual').value) || 0;
   if (!nome) { toast('Dê um nome para a meta'); return; }
   if (!alvo || alvo <= 0) { toast('Informe o valor alvo'); return; }
-  const config = getConfig();
-  if (!config.metas) config.metas = [];
-  config.metas.push({ id: Date.now(), nome, alvo, atual });
-  salvarConfig(config);
-  fecharModalMeta();
-  renderMetas();
-  toast('✓ Meta criada!');
+
+  confirmar(
+    '◎',
+    'Criar meta',
+    `"${nome}" · Meta: R$ ${alvo.toFixed(2).replace('.', ',')}`,
+    false,
+    () => {
+      const config = getConfig();
+      if (!config.metas) config.metas = [];
+      config.metas.push({ id: Date.now(), nome, alvo, atual });
+      salvarConfig(config);
+      fecharModalMeta();
+      renderMetas();
+      toast('✓ Meta criada!');
+    }
+  );
 }
 
 function deletarMeta(id) {
@@ -1645,10 +1826,17 @@ function carregarConfig() {
 }
 
 function limparMes() {
-  if (!confirm('Apagar todos os lançamentos deste mês?')) return;
-  salvarDados({ transacoes: [] });
-  atualizar();
-  toast('✓ Lançamentos apagados');
+  confirmar(
+    '🗑️',
+    'Limpar o mês',
+    `Apagar todos os lançamentos de ${MESES[mesAtual]}? Não tem como desfazer.`,
+    true,
+    () => {
+      salvarDados({ transacoes: [] });
+      atualizar();
+      toast('✓ Lançamentos apagados');
+    }
+  );
 }
 
 function exportarDados() {
@@ -1729,7 +1917,7 @@ function atualizar() {
           <div class="tr-cat">${catLabel[t.categoria] || t.categoria} · ${t.data}</div>
         </div>
         <div class="tr-valor ${t.tipo === 'entrada' ? 'e' : 's'}">${t.tipo === 'entrada' ? '+' : '-'}${fmt(t.valor)}</div>
-        <button class="tr-delete" onclick="deletarTransacao(${t.id})">✕</button>
+        <button class="tr-delete" onclick="deletarTransacao(${t.id}, '${t.desc.replace(/'/g, "\\'")}')">✕</button>
       </div>`).join('');
   }
 
@@ -1778,6 +1966,7 @@ function toast(msg) {
 // ── FECHAR MODAL AO CLICAR FORA ──
 document.getElementById('modalTransacao').addEventListener('click', function(e) { if (e.target === this) fecharModal(); });
 document.getElementById('modalMeta').addEventListener('click', function(e) { if (e.target === this) fecharModalMeta(); });
+document.getElementById('confirmOverlay').addEventListener('click', function(e) { if (e.target === this) fecharConfirm(); });
 
 // ── INIT ──
 setTipo('entrada');
