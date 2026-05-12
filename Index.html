@@ -1,0 +1,1787 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#0D1117">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Oikos Gestão — Controle Financeiro</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --gold: #C9A84C;
+  --gold-light: #E8C97A;
+  --gold-dark: #8B6914;
+  --gold-glow: rgba(201,168,76,0.15);
+  --deep: #0D1117;
+  --deep2: #141B24;
+  --deep3: #1C2631;
+  --deep4: #243040;
+  --white: #F7F3EC;
+  --white2: #EDE8DF;
+  --muted: #7A8FA6;
+  --success: #4CAF7D;
+  --danger: #E05252;
+  --danger-soft: rgba(224,82,82,0.1);
+  --success-soft: rgba(76,175,125,0.1);
+  --border: rgba(201,168,76,0.12);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+html, body {
+  height: 100%;
+  background: var(--deep);
+  color: var(--white);
+  font-family: 'Jost', sans-serif;
+  font-weight: 300;
+  overflow: hidden;
+}
+
+/* ── APP SHELL ── */
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  max-width: 480px;
+  margin: 0 auto;
+  position: relative;
+}
+
+/* ── HEADER ── */
+.header {
+  background: var(--deep);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 20px 12px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
+}
+
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logo svg { width: 24px; height: 24px; }
+
+.logo-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 20px;
+  font-weight: 300;
+  letter-spacing: 0.08em;
+  color: var(--white);
+}
+
+.logo-name span { color: var(--gold); }
+
+.header-mes {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.header-saldo {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.saldo-label {
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.saldo-valor {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 32px;
+  font-weight: 300;
+  transition: color 0.3s;
+}
+
+.saldo-valor.positivo { color: var(--success); }
+.saldo-valor.negativo { color: var(--danger); }
+.saldo-valor.neutro { color: var(--gold); }
+
+/* ── NAV TABS ── */
+.nav-tabs {
+  display: flex;
+  background: var(--deep2);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 12px 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  color: var(--muted);
+  transition: color 0.2s;
+  font-family: 'Jost', sans-serif;
+  position: relative;
+}
+
+.tab-btn.active { color: var(--gold); }
+
+.tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 20%; right: 20%;
+  height: 2px;
+  background: var(--gold);
+  border-radius: 2px 2px 0 0;
+}
+
+.tab-icon { font-size: 18px; line-height: 1; }
+.tab-label { font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 500; }
+
+/* ── CONTENT ── */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px;
+  display: none;
+}
+
+.content.active { display: block; }
+
+/* ── CARDS RESUMO ── */
+.resumo-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.resumo-card {
+  background: var(--deep2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.resumo-card.full { grid-column: 1 / -1; }
+
+.rc-label {
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.rc-valor {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 26px;
+  font-weight: 300;
+}
+
+.rc-valor.entrada { color: var(--success); }
+.rc-valor.saida { color: var(--danger); }
+.rc-valor.saldo-pos { color: var(--gold); }
+.rc-valor.saldo-neg { color: var(--danger); }
+
+/* ── ORÇAMENTO 50/30/20 ── */
+.orcamento-section {
+  background: var(--deep2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.sec-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px;
+  color: var(--white);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sec-title-label {
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 4px;
+}
+
+.orcamento-item {
+  margin-bottom: 12px;
+}
+
+.orc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.orc-nome {
+  font-size: 12px;
+  color: var(--white2);
+  font-weight: 400;
+}
+
+.orc-valores {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.orc-valores span { color: var(--gold); }
+
+.progress-bar {
+  height: 6px;
+  background: var(--deep3);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.fill-nec { background: var(--gold); }
+.fill-des { background: #4A7C9E; }
+.fill-fut { background: var(--success); }
+.fill-over { background: var(--danger); }
+
+/* ── LISTA TRANSAÇÕES ── */
+.lista-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.lista-titulo {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px;
+  color: var(--white);
+}
+
+.btn-add {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: var(--gold);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: var(--deep);
+  font-weight: 300;
+  transition: background 0.2s, transform 0.1s;
+  flex-shrink: 0;
+}
+
+.btn-add:active { transform: scale(0.93); }
+.btn-add:hover { background: var(--gold-light); }
+
+.transacao-item {
+  background: var(--deep2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.tr-icone {
+  width: 36px; height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.tr-icone.entrada-bg { background: var(--success-soft); }
+.tr-icone.saida-bg { background: var(--danger-soft); }
+
+.tr-info { flex: 1; min-width: 0; }
+
+.tr-desc {
+  font-size: 13px;
+  color: var(--white);
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tr-cat {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 2px;
+  letter-spacing: 0.05em;
+}
+
+.tr-valor {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px;
+  font-weight: 400;
+  flex-shrink: 0;
+}
+
+.tr-valor.e { color: var(--success); }
+.tr-valor.s { color: var(--danger); }
+
+.tr-delete {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+  flex-shrink: 0;
+}
+
+.tr-delete:hover { opacity: 1; color: var(--danger); }
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--muted);
+}
+
+.empty-state .empty-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.4; }
+.empty-state p { font-size: 13px; line-height: 1.6; }
+
+/* ── MODAL ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(13,17,23,0.85);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.modal-overlay.open { display: flex; }
+
+.modal {
+  background: var(--deep2);
+  border: 1px solid var(--border);
+  border-radius: 16px 16px 0 0;
+  padding: 24px 20px 32px;
+  width: 100%;
+  max-width: 480px;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.modal-handle {
+  width: 36px; height: 4px;
+  background: var(--deep4);
+  border-radius: 2px;
+  margin: 0 auto 20px;
+}
+
+.modal-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 22px;
+  color: var(--white);
+  margin-bottom: 20px;
+}
+
+/* Tipo toggle */
+.tipo-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.tipo-btn {
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--deep3);
+  color: var(--muted);
+  font-family: 'Jost', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.tipo-btn.active-entrada { background: var(--success-soft); border-color: var(--success); color: var(--success); }
+.tipo-btn.active-saida { background: var(--danger-soft); border-color: var(--danger); color: var(--danger); }
+
+/* Form */
+.form-group { margin-bottom: 14px; }
+
+.form-label {
+  font-size: 10px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 7px;
+  display: block;
+}
+
+.form-input, .form-select {
+  width: 100%;
+  background: var(--deep3);
+  border: 1px solid rgba(201,168,76,0.15);
+  border-radius: 6px;
+  padding: 13px 14px;
+  color: var(--white);
+  font-family: 'Jost', sans-serif;
+  font-size: 15px;
+  font-weight: 300;
+  outline: none;
+  transition: border-color 0.2s;
+  -webkit-appearance: none;
+}
+
+.form-input:focus, .form-select:focus { border-color: var(--gold); }
+.form-select option { background: var(--deep3); }
+
+.btn-salvar {
+  width: 100%;
+  background: var(--gold);
+  color: var(--deep);
+  border: none;
+  border-radius: 6px;
+  padding: 15px;
+  font-family: 'Jost', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  margin-top: 8px;
+}
+
+.btn-salvar:active { transform: scale(0.98); }
+.btn-salvar:hover { background: var(--gold-light); }
+
+/* ── METAS ── */
+.meta-card {
+  background: var(--deep2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 10px;
+}
+
+.meta-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.meta-nome {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px;
+  color: var(--white);
+}
+
+.meta-pct {
+  font-size: 12px;
+  color: var(--gold);
+  font-weight: 500;
+}
+
+.meta-valores {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 8px;
+}
+
+.meta-atual { color: var(--success); font-weight: 500; }
+
+.meta-delete {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 13px;
+  opacity: 0.5;
+  padding: 2px 6px;
+  transition: opacity 0.2s;
+}
+.meta-delete:hover { opacity: 1; color: var(--danger); }
+
+/* ── FUNDO EMERGÊNCIA ── */
+.fundo-card {
+  background: linear-gradient(135deg, var(--deep2), var(--deep3));
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.fundo-titulo {
+  font-size: 9px;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 8px;
+}
+
+.fundo-valor {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 36px;
+  color: var(--success);
+  margin-bottom: 4px;
+}
+
+.fundo-meta-label {
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+
+/* ── DICAS ── */
+.dica-card {
+  background: var(--deep2);
+  border-left: 3px solid var(--gold);
+  border-radius: 0 8px 8px 0;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+
+.dica-titulo {
+  font-size: 11px;
+  color: var(--gold);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.dica-texto {
+  font-size: 13px;
+  color: var(--white2);
+  line-height: 1.6;
+}
+
+/* ── CONFIGURAÇÕES ── */
+.config-section {
+  background: var(--deep2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.config-titulo {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 16px;
+  color: var(--white);
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.config-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.config-item:last-child { border-bottom: none; }
+
+.config-label { font-size: 13px; color: var(--white2); }
+.config-sub { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+.btn-limpar {
+  background: var(--danger-soft);
+  border: 1px solid rgba(224,82,82,0.3);
+  color: var(--danger);
+  border-radius: 6px;
+  padding: 10px 16px;
+  font-family: 'Jost', sans-serif;
+  font-size: 12px;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 8px;
+  transition: background 0.2s;
+}
+
+.btn-limpar:hover { background: rgba(224,82,82,0.2); }
+
+/* Chip de mês */
+.mes-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mes-btn {
+  background: var(--deep3);
+  border: 1px solid var(--border);
+  color: var(--gold);
+  width: 28px; height: 28px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.mes-btn:hover { background: var(--deep4); }
+
+.mes-nome {
+  font-size: 12px;
+  color: var(--white);
+  font-weight: 400;
+  min-width: 90px;
+  text-align: center;
+}
+
+/* Scrollbar */
+.content::-webkit-scrollbar { width: 3px; }
+.content::-webkit-scrollbar-track { background: transparent; }
+.content::-webkit-scrollbar-thumb { background: var(--deep4); border-radius: 2px; }
+
+/* Notificação toast */
+.toast {
+  position: fixed;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--deep3);
+  border: 1px solid var(--gold);
+  color: var(--white);
+  padding: 10px 20px;
+  border-radius: 24px;
+  font-size: 12px;
+  opacity: 0;
+  transition: all 0.3s;
+  z-index: 200;
+  white-space: nowrap;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ── TELA DE BLOQUEIO ── */
+.lock-screen {
+  position: fixed;
+  inset: 0;
+  background: var(--deep);
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 32px;
+  text-align: center;
+}
+
+.lock-screen::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 70% 50% at 50% 20%, rgba(201,168,76,0.08) 0%, transparent 65%);
+}
+
+.lock-grid {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(201,168,76,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(201,168,76,0.02) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+.lock-content { position: relative; z-index: 2; width: 100%; max-width: 320px; }
+
+.lock-logo { margin-bottom: 32px; }
+.lock-logo svg { width: 64px; height: 64px; filter: drop-shadow(0 0 20px rgba(201,168,76,0.3)); }
+
+.lock-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 32px;
+  font-weight: 300;
+  color: var(--white);
+  letter-spacing: 0.08em;
+  margin-bottom: 4px;
+}
+.lock-title span { color: var(--gold); }
+
+.lock-sub {
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 48px;
+}
+
+.lock-label {
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+  text-align: left;
+}
+
+.lock-input-wrap { position: relative; margin-bottom: 14px; }
+
+.lock-input {
+  width: 100%;
+  background: var(--deep2);
+  border: 1px solid rgba(201,168,76,0.2);
+  border-radius: 8px;
+  padding: 16px 48px 16px 18px;
+  color: var(--white);
+  font-family: 'Jost', sans-serif;
+  font-size: 18px;
+  letter-spacing: 0.2em;
+  outline: none;
+  transition: border-color 0.2s;
+  text-align: center;
+}
+.lock-input:focus { border-color: var(--gold); }
+.lock-input.erro { border-color: var(--danger); animation: shake 0.4s ease; }
+
+.lock-eye {
+  position: absolute;
+  right: 14px; top: 50%;
+  transform: translateY(-50%);
+  background: none; border: none;
+  color: var(--muted); cursor: pointer;
+  font-size: 16px; padding: 4px;
+}
+
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  60% { transform: translateX(8px); }
+}
+
+.lock-btn {
+  width: 100%;
+  background: var(--gold);
+  color: var(--deep);
+  border: none;
+  border-radius: 8px;
+  padding: 16px;
+  font-family: 'Jost', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  margin-bottom: 16px;
+}
+.lock-btn:active { transform: scale(0.98); }
+.lock-btn:hover { background: var(--gold-light); }
+
+.lock-erro {
+  font-size: 12px;
+  color: var(--danger);
+  margin-top: -8px;
+  margin-bottom: 12px;
+  min-height: 18px;
+}
+
+.lock-footer {
+  font-size: 11px;
+  color: rgba(122,143,166,0.4);
+  margin-top: 48px;
+  letter-spacing: 0.1em;
+}
+
+/* ── ABA PERFIL ── */
+.perfil-avatar {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  background: var(--deep3);
+  border: 2px solid var(--gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 28px;
+  color: var(--gold);
+  margin: 0 auto 16px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  flex-shrink: 0;
+}
+
+.perfil-nome {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 22px;
+  color: var(--white);
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+.perfil-email {
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.perfil-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.perfil-stat {
+  background: var(--deep2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 8px;
+  text-align: center;
+}
+
+.perfil-stat-num {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 22px;
+  color: var(--gold);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.perfil-stat-label {
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.perfil-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--deep2);
+  border: 1px solid rgba(201,168,76,0.3);
+  border-radius: 20px;
+  padding: 5px 14px;
+  font-size: 11px;
+  color: var(--gold);
+  letter-spacing: 0.1em;
+  margin-bottom: 20px;
+}
+
+.btn-sair {
+  width: 100%;
+  background: none;
+  border: 1px solid rgba(224,82,82,0.3);
+  color: var(--danger);
+  border-radius: 6px;
+  padding: 12px;
+  font-family: 'Jost', sans-serif;
+  font-size: 12px;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: background 0.2s;
+  letter-spacing: 0.1em;
+}
+.btn-sair:hover { background: var(--danger-soft); }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-top">
+      <div class="logo">
+        <svg viewBox="0 0 32 32" fill="none">
+          <circle cx="16" cy="16" r="14" stroke="#C9A84C" stroke-width="0.8" stroke-dasharray="3 4" opacity="0.5"/>
+          <line x1="9" y1="5" x2="9" y2="27" stroke="#F7F3EC" stroke-width="2" stroke-linecap="round"/>
+          <line x1="9" y1="16" x2="20" y2="5" stroke="#F7F3EC" stroke-width="2" stroke-linecap="round"/>
+          <line x1="9" y1="16" x2="22" y2="27" stroke="#F7F3EC" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="9" cy="16" r="2" fill="#C9A84C"/>
+        </svg>
+        <span class="logo-name">O<span>i</span>kos Gestão</span>
+      </div>
+      <div class="mes-chip">
+        <button class="mes-btn" onclick="mudarMes(-1)">‹</button>
+        <span class="mes-nome" id="mesNome">—</span>
+        <button class="mes-btn" onclick="mudarMes(1)">›</button>
+      </div>
+    </div>
+    <div class="header-saldo">
+      <span class="saldo-label">Saldo</span>
+      <span class="saldo-valor neutro" id="saldoGeral">R$ 0,00</span>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="nav-tabs">
+    <button class="tab-btn active" onclick="setTab('resumo', this)">
+      <span class="tab-icon">◈</span>
+      <span class="tab-label">Resumo</span>
+    </button>
+    <button class="tab-btn" onclick="setTab('transacoes', this)">
+      <span class="tab-icon">⇄</span>
+      <span class="tab-label">Lançar</span>
+    </button>
+    <button class="tab-btn" onclick="setTab('metas', this)">
+      <span class="tab-icon">◎</span>
+      <span class="tab-label">Metas</span>
+    </button>
+    <button class="tab-btn" onclick="setTab('perfil', this)">
+      <span class="tab-icon">👤</span>
+      <span class="tab-label">Perfil</span>
+    </button>
+    <button class="tab-btn" onclick="setTab('config', this)">
+      <span class="tab-icon">⚙</span>
+      <span class="tab-label">Config</span>
+    </button>
+  </div>
+
+  <!-- ── ABA RESUMO ── -->
+  <div class="content active" id="tab-resumo">
+
+    <div class="resumo-cards">
+      <div class="resumo-card">
+        <div class="rc-label">Entradas</div>
+        <div class="rc-valor entrada" id="totalEntradas">R$ 0,00</div>
+      </div>
+      <div class="resumo-card">
+        <div class="rc-label">Saídas</div>
+        <div class="rc-valor saida" id="totalSaidas">R$ 0,00</div>
+      </div>
+    </div>
+
+    <!-- ORÇAMENTO 50/30/20 -->
+    <div class="orcamento-section">
+      <div class="sec-title-label">Método 50·30·20</div>
+      <div class="sec-title">Orçamento do Mês</div>
+
+      <div class="orcamento-item">
+        <div class="orc-header">
+          <span class="orc-nome">🏠 Necessidades (50%)</span>
+          <span class="orc-valores"><span id="orc-nec-gasto">0</span> / <span id="orc-nec-limite">0</span></span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill fill-nec" id="bar-nec" style="width:0%"></div>
+        </div>
+      </div>
+
+      <div class="orcamento-item">
+        <div class="orc-header">
+          <span class="orc-nome">✨ Desejos (30%)</span>
+          <span class="orc-valores"><span id="orc-des-gasto">0</span> / <span id="orc-des-limite">0</span></span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill fill-des" id="bar-des" style="width:0%"></div>
+        </div>
+      </div>
+
+      <div class="orcamento-item" style="margin-bottom:0">
+        <div class="orc-header">
+          <span class="orc-nome">🌱 Futuro (20%)</span>
+          <span class="orc-valores"><span id="orc-fut-gasto">0</span> / <span id="orc-fut-limite">0</span></span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill fill-fut" id="bar-fut" style="width:0%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FUNDO EMERGÊNCIA -->
+    <div class="fundo-card">
+      <div class="fundo-titulo">Fundo de Emergência</div>
+      <div class="fundo-valor" id="fundoValor">R$ 0,00</div>
+      <div class="fundo-meta-label" id="fundoMeta">Meta: R$ 0,00 · 0% concluído</div>
+      <div class="progress-bar" style="max-width:240px;margin:0 auto">
+        <div class="progress-fill fill-fut" id="bar-fundo" style="width:0%"></div>
+      </div>
+    </div>
+
+    <!-- DICAS -->
+    <div class="dica-card">
+      <div class="dica-titulo">💡 Dica do dia</div>
+      <div class="dica-texto" id="dicaDia">Carregando...</div>
+    </div>
+
+  </div>
+
+  <!-- ── ABA TRANSAÇÕES ── -->
+  <div class="content" id="tab-transacoes">
+    <div class="lista-header">
+      <div class="lista-titulo">Lançamentos</div>
+      <button class="btn-add" onclick="abrirModal()">+</button>
+    </div>
+    <div id="listaTransacoes"></div>
+  </div>
+
+  <!-- ── ABA METAS ── -->
+  <div class="content" id="tab-metas">
+    <div class="lista-header">
+      <div class="lista-titulo">Minhas Metas</div>
+      <button class="btn-add" onclick="abrirModalMeta()">+</button>
+    </div>
+    <div id="listaMetas"></div>
+
+    <div class="dica-card" style="margin-top:16px">
+      <div class="dica-titulo">📖 Do e-book</div>
+      <div class="dica-texto">"Defina metas financeiras concretas. Não 'quero poupar mais', mas 'vou guardar R$ 300 por mês para minha reserva de emergência até dezembro'."</div>
+    </div>
+  </div>
+
+  <!-- ── ABA PERFIL ── -->
+  <div class="content" id="tab-perfil">
+
+    <!-- Avatar + nome -->
+    <div style="text-align:center;padding:8px 0 16px">
+      <div class="perfil-avatar" id="perfilAvatar" onclick="document.getElementById('perfilNomeInput').focus()">?</div>
+      <div class="perfil-nome" id="perfilNomeDisplay">Meu Perfil</div>
+      <div class="perfil-email" id="perfilEmailDisplay">Toque para editar</div>
+      <span class="perfil-badge">✦ Oikos Gestão · Usuário Ativo</span>
+    </div>
+
+    <!-- Stats do mês -->
+    <div class="perfil-stat-grid">
+      <div class="perfil-stat">
+        <div class="perfil-stat-num" id="statTransacoes">0</div>
+        <div class="perfil-stat-label">Lançamentos</div>
+      </div>
+      <div class="perfil-stat">
+        <div class="perfil-stat-num" id="statMetas">0</div>
+        <div class="perfil-stat-label">Metas</div>
+      </div>
+      <div class="perfil-stat">
+        <div class="perfil-stat-num" id="statMeses">0</div>
+        <div class="perfil-stat-label">Meses ativos</div>
+      </div>
+    </div>
+
+    <!-- Formulário de dados pessoais -->
+    <div class="config-section">
+      <div class="config-titulo">Dados pessoais</div>
+
+      <div class="form-group">
+        <label class="form-label">Nome completo</label>
+        <input type="text" class="form-input" id="perfilNomeInput" placeholder="Seu nome" oninput="atualizarPerfil()">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">E-mail</label>
+        <input type="email" class="form-input" id="perfilEmailInput" placeholder="seu@email.com" oninput="atualizarPerfil()">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">WhatsApp</label>
+        <input type="tel" class="form-input" id="perfilWppInput" placeholder="(00) 00000-0000" oninput="atualizarPerfil()">
+      </div>
+
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">Cidade / Estado</label>
+        <input type="text" class="form-input" id="perfilCidadeInput" placeholder="Ex: Uberlândia, MG" oninput="atualizarPerfil()">
+      </div>
+    </div>
+
+    <!-- Alterar senha de acesso -->
+    <div class="config-section">
+      <div class="config-titulo">Senha de acesso</div>
+      <div class="form-group">
+        <label class="form-label">Nova senha (mín. 4 caracteres)</label>
+        <input type="password" class="form-input" id="novaSenhaInput" placeholder="Digite a nova senha">
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">Confirmar nova senha</label>
+        <input type="password" class="form-input" id="confirmarSenhaInput" placeholder="Repita a senha">
+      </div>
+      <button class="btn-salvar" style="margin-top:12px" onclick="alterarSenha()">Salvar nova senha</button>
+    </div>
+
+    <!-- Código de ativação -->
+    <div class="config-section">
+      <div class="config-titulo">Licença</div>
+      <div class="config-item">
+        <div>
+          <div class="config-label">Código de ativação</div>
+          <div class="config-sub" id="licencaStatus">Verificando...</div>
+        </div>
+        <span style="font-size:18px" id="licencaIcon">⏳</span>
+      </div>
+    </div>
+
+    <button class="btn-sair" onclick="sair()">⬡ Sair da conta</button>
+
+  </div>
+
+  <!-- ── ABA CONFIG ── -->
+  <div class="content" id="tab-config">
+
+    <div class="config-section">
+      <div class="config-titulo">Renda mensal</div>
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">Sua renda líquida (R$)</label>
+        <input type="number" class="form-input" id="rendaInput" placeholder="Ex: 3000" onchange="salvarRenda()">
+      </div>
+    </div>
+
+    <div class="config-section">
+      <div class="config-titulo">Fundo de emergência</div>
+      <div class="form-group">
+        <label class="form-label">Valor atual guardado (R$)</label>
+        <input type="number" class="form-input" id="fundoAtualInput" placeholder="Ex: 500" onchange="salvarFundo()">
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">Meta do fundo (R$)</label>
+        <input type="number" class="form-input" id="fundoMetaInput" placeholder="Ex: 9000" onchange="salvarFundo()">
+      </div>
+    </div>
+
+    <div class="config-section">
+      <div class="config-titulo">Dados</div>
+      <div class="config-item">
+        <div>
+          <div class="config-label">Exportar dados</div>
+          <div class="config-sub">Baixar JSON com todos os lançamentos</div>
+        </div>
+        <button class="mes-btn" onclick="exportarDados()" style="width:auto;padding:0 12px;font-size:12px">⬇</button>
+      </div>
+      <button class="btn-limpar" onclick="limparMes()">Limpar lançamentos deste mês</button>
+    </div>
+
+    <div class="config-section">
+      <div class="config-titulo" style="border-bottom:none;margin-bottom:0;padding-bottom:0">Sobre</div>
+      <div style="margin-top:10px">
+        <div style="font-size:12px;color:var(--muted);line-height:1.7">
+          <strong style="color:var(--gold)">Oikos Gestão</strong> faz parte do ecossistema Kairós Solutions.<br>
+          Complemento do e-book <em>Finanças com Propósito</em>.<br><br>
+          Suporte: (34) 98431-4362<br>
+          kairos.solutions
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div><!-- /app -->
+
+<!-- MODAL LANÇAMENTO -->
+<div class="modal-overlay" id="modalTransacao">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Novo lançamento</div>
+
+    <div class="tipo-toggle">
+      <button class="tipo-btn active-entrada" id="btnEntrada" onclick="setTipo('entrada')">⬆ Entrada</button>
+      <button class="tipo-btn" id="btnSaida" onclick="setTipo('saida')">⬇ Saída</button>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Descrição</label>
+      <input type="text" class="form-input" id="trDesc" placeholder="Ex: Salário, Mercado...">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Valor (R$)</label>
+      <input type="number" class="form-input" id="trValor" placeholder="0,00" step="0.01">
+    </div>
+
+    <div class="form-group" id="grupoCategoria">
+      <label class="form-label">Categoria</label>
+      <select class="form-select" id="trCategoria">
+        <option value="necessidades">🏠 Necessidades</option>
+        <option value="desejos">✨ Desejos</option>
+        <option value="futuro">🌱 Futuro / Poupança</option>
+        <option value="dividas">⚡ Dívidas</option>
+        <option value="outros">📦 Outros</option>
+      </select>
+    </div>
+
+    <button class="btn-salvar" onclick="salvarTransacao()">Salvar lançamento</button>
+    <button style="width:100%;background:none;border:none;color:var(--muted);padding:12px;cursor:pointer;font-family:Jost,sans-serif;font-size:13px;margin-top:4px" onclick="fecharModal()">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL META -->
+<div class="modal-overlay" id="modalMeta">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Nova meta</div>
+
+    <div class="form-group">
+      <label class="form-label">Nome da meta</label>
+      <input type="text" class="form-input" id="metaNome" placeholder="Ex: Fundo de emergência, Viagem...">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Valor alvo (R$)</label>
+      <input type="number" class="form-input" id="metaAlvo" placeholder="0,00" step="0.01">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Já guardei (R$)</label>
+      <input type="number" class="form-input" id="metaAtual" placeholder="0,00" step="0.01">
+    </div>
+
+    <button class="btn-salvar" onclick="salvarMeta()">Criar meta</button>
+    <button style="width:100%;background:none;border:none;color:var(--muted);padding:12px;cursor:pointer;font-family:Jost,sans-serif;font-size:13px;margin-top:4px" onclick="fecharModalMeta()">Cancelar</button>
+  </div>
+</div>
+
+<!-- TELA DE BLOQUEIO -->
+<div class="lock-screen" id="lockScreen">
+  <div class="lock-grid"></div>
+  <div class="lock-content">
+    <div class="lock-logo">
+      <svg viewBox="0 0 120 120" fill="none">
+        <circle cx="60" cy="60" r="54" stroke="#C9A84C" stroke-width="1" stroke-dasharray="4 6" opacity="0.4"/>
+        <circle cx="60" cy="60" r="42" stroke="#C9A84C" stroke-width="0.5" opacity="0.2"/>
+        <line x1="36" y1="22" x2="36" y2="98" stroke="#F7F3EC" stroke-width="4" stroke-linecap="round"/>
+        <line x1="36" y1="60" x2="72" y2="22" stroke="#F7F3EC" stroke-width="4" stroke-linecap="round"/>
+        <line x1="36" y1="60" x2="78" y2="98" stroke="#F7F3EC" stroke-width="4" stroke-linecap="round"/>
+        <circle cx="36" cy="60" r="5" fill="#C9A84C"/>
+        <line x1="60" y1="6" x2="60" y2="18" stroke="#C9A84C" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="54" y1="12" x2="66" y2="12" stroke="#C9A84C" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+
+    <h1 class="lock-title">O<span>i</span>kos Gestão</h1>
+    <p class="lock-sub">A economia do seu lar com propósito</p>
+
+    <div id="lockFormArea">
+      <p class="lock-label">Senha de acesso</p>
+      <div class="lock-input-wrap">
+        <input type="password" class="lock-input" id="lockInput"
+          placeholder="••••••"
+          onkeydown="if(event.key==='Enter') tentarAcesso()"
+          autocomplete="current-password">
+        <button class="lock-eye" onclick="toggleSenhaVisivel()" id="lockEyeBtn">👁</button>
+      </div>
+      <div class="lock-erro" id="lockErro"></div>
+      <button class="lock-btn" onclick="tentarAcesso()">Entrar</button>
+    </div>
+
+    <div id="lockPrimeiroAcesso" style="display:none">
+      <p style="font-size:13px;color:var(--white2);line-height:1.6;margin-bottom:20px">
+        Bem-vindo ao Oikos Gestão!<br>Crie uma senha para proteger seu app.
+      </p>
+      <p class="lock-label">Criar senha</p>
+      <div class="lock-input-wrap" style="margin-bottom:10px">
+        <input type="password" class="lock-input" id="lockNovaSenha" placeholder="Nova senha (mín. 4 dígitos)">
+      </div>
+      <p class="lock-label">Confirmar senha</p>
+      <div class="lock-input-wrap">
+        <input type="password" class="lock-input" id="lockConfirmarSenha" placeholder="Repita a senha">
+      </div>
+      <div class="lock-erro" id="lockErro2"></div>
+      <button class="lock-btn" onclick="criarSenha()">Criar senha e entrar</button>
+    </div>
+
+    <p class="lock-footer">Kairós Solutions · kairos.solutions</p>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── SENHA / ACESSO ──
+const SENHA_KEY = 'kairos_senha';
+const ACESSO_KEY = 'kairos_acesso';
+
+function verificarAcesso() {
+  const senha = localStorage.getItem(SENHA_KEY);
+  if (!senha) {
+    // Primeiro acesso — mostrar criação de senha
+    document.getElementById('lockFormArea').style.display = 'none';
+    document.getElementById('lockPrimeiroAcesso').style.display = 'block';
+  }
+  document.getElementById('lockScreen').style.display = 'flex';
+}
+
+function criarSenha() {
+  const nova = document.getElementById('lockNovaSenha').value;
+  const conf = document.getElementById('lockConfirmarSenha').value;
+  const erroEl = document.getElementById('lockErro2');
+
+  if (nova.length < 4) { erroEl.textContent = 'A senha precisa ter pelo menos 4 caracteres.'; return; }
+  if (nova !== conf) { erroEl.textContent = 'As senhas não coincidem.'; return; }
+
+  localStorage.setItem(SENHA_KEY, btoa(nova));
+  desbloquear();
+  toast('✓ Senha criada com sucesso!');
+}
+
+function tentarAcesso() {
+  const input = document.getElementById('lockInput').value;
+  const salva = localStorage.getItem(SENHA_KEY);
+  const erroEl = document.getElementById('lockErro');
+
+  if (btoa(input) === salva) {
+    desbloquear();
+  } else {
+    erroEl.textContent = 'Senha incorreta. Tente novamente.';
+    const inp = document.getElementById('lockInput');
+    inp.classList.add('erro');
+    inp.value = '';
+    setTimeout(() => inp.classList.remove('erro'), 500);
+  }
+}
+
+function desbloquear() {
+  document.getElementById('lockScreen').style.display = 'none';
+  document.getElementById('lockErro').textContent = '';
+  document.getElementById('lockInput').value = '';
+  atualizar();
+}
+
+function sair() {
+  if (!confirm('Sair da conta? Você precisará digitar a senha novamente.')) return;
+  document.getElementById('lockInput').value = '';
+  document.getElementById('lockErro').textContent = '';
+  document.getElementById('lockFormArea').style.display = 'block';
+  document.getElementById('lockPrimeiroAcesso').style.display = 'none';
+  document.getElementById('lockScreen').style.display = 'flex';
+}
+
+function toggleSenhaVisivel() {
+  const inp = document.getElementById('lockInput');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+function alterarSenha() {
+  const nova = document.getElementById('novaSenhaInput').value;
+  const conf = document.getElementById('confirmarSenhaInput').value;
+  if (nova.length < 4) { toast('Senha precisa ter pelo menos 4 caracteres'); return; }
+  if (nova !== conf) { toast('As senhas não coincidem'); return; }
+  localStorage.setItem(SENHA_KEY, btoa(nova));
+  document.getElementById('novaSenhaInput').value = '';
+  document.getElementById('confirmarSenhaInput').value = '';
+  toast('✓ Senha alterada com sucesso!');
+}
+
+// ── PERFIL ──
+function carregarPerfil() {
+  const config = getConfig();
+  const p = config.perfil || {};
+  document.getElementById('perfilNomeInput').value = p.nome || '';
+  document.getElementById('perfilEmailInput').value = p.email || '';
+  document.getElementById('perfilWppInput').value = p.wpp || '';
+  document.getElementById('perfilCidadeInput').value = p.cidade || '';
+  atualizarDisplayPerfil(p);
+  atualizarStatsPerfil();
+  verificarLicenca();
+}
+
+function atualizarPerfil() {
+  const config = getConfig();
+  config.perfil = {
+    nome: document.getElementById('perfilNomeInput').value,
+    email: document.getElementById('perfilEmailInput').value,
+    wpp: document.getElementById('perfilWppInput').value,
+    cidade: document.getElementById('perfilCidadeInput').value,
+  };
+  salvarConfig(config);
+  atualizarDisplayPerfil(config.perfil);
+}
+
+function atualizarDisplayPerfil(p) {
+  const nome = p.nome || 'Meu Perfil';
+  const email = p.email || (p.cidade || 'Toque para editar');
+  document.getElementById('perfilNomeDisplay').textContent = nome;
+  document.getElementById('perfilEmailDisplay').textContent = email;
+  // Avatar com inicial
+  const inicial = nome.charAt(0).toUpperCase() || '?';
+  document.getElementById('perfilAvatar').textContent = inicial;
+}
+
+function atualizarStatsPerfil() {
+  const dados = getDados();
+  const config = getConfig();
+  document.getElementById('statTransacoes').textContent = dados.transacoes.length;
+  document.getElementById('statMetas').textContent = (config.metas || []).length;
+
+  // Contar meses com dados
+  let mesesAtivos = 0;
+  for (let a = 2024; a <= new Date().getFullYear() + 1; a++) {
+    for (let m = 0; m < 12; m++) {
+      const d = localStorage.getItem(`kairos_${a}_${m}`);
+      if (d) {
+        try {
+          const parsed = JSON.parse(d);
+          if (parsed.transacoes && parsed.transacoes.length > 0) mesesAtivos++;
+        } catch {}
+      }
+    }
+  }
+  document.getElementById('statMeses').textContent = mesesAtivos;
+}
+
+function verificarLicenca() {
+  const config = getConfig();
+  const temSenha = !!localStorage.getItem(SENHA_KEY);
+  const statusEl = document.getElementById('licencaStatus');
+  const iconEl = document.getElementById('licencaIcon');
+  if (temSenha) {
+    statusEl.textContent = 'Licença ativa · Oikos Gestão';
+    iconEl.textContent = '✓';
+    iconEl.style.color = 'var(--success)';
+  } else {
+    statusEl.textContent = 'Configure sua senha para ativar';
+    iconEl.textContent = '⚠';
+    iconEl.style.color = 'var(--gold)';
+  }
+}
+
+// ── ESTADO ──
+const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const DICAS = [
+  'Pague-se primeiro: assim que o salário entrar, transfira sua poupança antes de qualquer gasto.',
+  'Revise seu extrato bancário toda semana. 15 minutos são suficientes para manter o controle.',
+  'Pequenos gastos diários somam muito. R$ 20/dia = R$ 600/mês = R$ 7.200/ano.',
+  'Antes de uma compra, espere 48 horas. Se ainda quiser, aí é desejo real, não impulso.',
+  'Seu fundo de emergência protege você de transformar imprevistos em dívidas.',
+  'O dízimo em primeiro lugar alinha suas finanças com seus valores mais profundos.',
+  'Metas escritas têm 42% mais chance de ser alcançadas. Escreva as suas.',
+  'Negocie sempre. Juros, mensalidades, contratos — tudo tem margem para negociação.',
+  '"O sábio tem reservas na casa; o insensato as gasta todas." — Provérbios 21:20',
+  'Automatize sua poupança. O que você não vê, não gasta.',
+];
+
+let mesAtual = new Date().getMonth();
+let anoAtual = new Date().getFullYear();
+let tipoAtual = 'entrada';
+
+function chave() { return `kairos_${anoAtual}_${mesAtual}`; }
+
+function getDados() {
+  try { return JSON.parse(localStorage.getItem(chave()) || '{"transacoes":[]}'); }
+  catch { return { transacoes: [] }; }
+}
+
+function salvarDados(d) { localStorage.setItem(chave(), JSON.stringify(d)); }
+
+function getConfig() {
+  try { return JSON.parse(localStorage.getItem('kairos_config') || '{}'); }
+  catch { return {}; }
+}
+
+function salvarConfig(c) { localStorage.setItem('kairos_config', JSON.stringify(c)); }
+
+// ── FORMATAÇÃO ──
+function fmt(v) {
+  return 'R$ ' + Math.abs(v).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+function fmtCurto(v) {
+  if (v >= 1000) return 'R$ ' + (v/1000).toFixed(1).replace('.',',') + 'k';
+  return 'R$ ' + v.toFixed(0);
+}
+
+// ── MÊS ──
+function mudarMes(d) {
+  mesAtual += d;
+  if (mesAtual < 0) { mesAtual = 11; anoAtual--; }
+  if (mesAtual > 11) { mesAtual = 0; anoAtual++; }
+  atualizar();
+}
+
+// ── TABS ──
+function setTab(tab, btn) {
+  document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (tab === 'config') carregarConfig();
+  if (tab === 'perfil') carregarPerfil();
+}
+
+// ── MODAL TRANSAÇÃO ──
+function abrirModal() {
+  document.getElementById('trDesc').value = '';
+  document.getElementById('trValor').value = '';
+  document.getElementById('trCategoria').value = 'necessidades';
+  setTipo('entrada');
+  document.getElementById('modalTransacao').classList.add('open');
+  setTimeout(() => document.getElementById('trDesc').focus(), 300);
+}
+
+function fecharModal() { document.getElementById('modalTransacao').classList.remove('open'); }
+
+function setTipo(t) {
+  tipoAtual = t;
+  const be = document.getElementById('btnEntrada');
+  const bs = document.getElementById('btnSaida');
+  const gc = document.getElementById('grupoCategoria');
+  be.className = 'tipo-btn' + (t === 'entrada' ? ' active-entrada' : '');
+  bs.className = 'tipo-btn' + (t === 'saida' ? ' active-saida' : '');
+  gc.style.display = t === 'saida' ? 'block' : 'none';
+}
+
+function salvarTransacao() {
+  const desc = document.getElementById('trDesc').value.trim();
+  const valor = parseFloat(document.getElementById('trValor').value);
+  const cat = tipoAtual === 'saida' ? document.getElementById('trCategoria').value : 'entrada';
+  if (!desc) { toast('Adicione uma descrição'); return; }
+  if (!valor || valor <= 0) { toast('Informe um valor válido'); return; }
+  const dados = getDados();
+  dados.transacoes.unshift({ id: Date.now(), desc, valor, tipo: tipoAtual, categoria: cat, data: new Date().toLocaleDateString('pt-BR') });
+  salvarDados(dados);
+  fecharModal();
+  atualizar();
+  toast(tipoAtual === 'entrada' ? '✓ Entrada registrada' : '✓ Saída registrada');
+}
+
+function deletarTransacao(id) {
+  const dados = getDados();
+  dados.transacoes = dados.transacoes.filter(t => t.id !== id);
+  salvarDados(dados);
+  atualizar();
+}
+
+// ── MODAL META ──
+function abrirModalMeta() {
+  document.getElementById('metaNome').value = '';
+  document.getElementById('metaAlvo').value = '';
+  document.getElementById('metaAtual').value = '';
+  document.getElementById('modalMeta').classList.add('open');
+}
+
+function fecharModalMeta() { document.getElementById('modalMeta').classList.remove('open'); }
+
+function salvarMeta() {
+  const nome = document.getElementById('metaNome').value.trim();
+  const alvo = parseFloat(document.getElementById('metaAlvo').value);
+  const atual = parseFloat(document.getElementById('metaAtual').value) || 0;
+  if (!nome) { toast('Dê um nome para a meta'); return; }
+  if (!alvo || alvo <= 0) { toast('Informe o valor alvo'); return; }
+  const config = getConfig();
+  if (!config.metas) config.metas = [];
+  config.metas.push({ id: Date.now(), nome, alvo, atual });
+  salvarConfig(config);
+  fecharModalMeta();
+  renderMetas();
+  toast('✓ Meta criada!');
+}
+
+function deletarMeta(id) {
+  const config = getConfig();
+  config.metas = (config.metas || []).filter(m => m.id !== id);
+  salvarConfig(config);
+  renderMetas();
+}
+
+// ── CONFIG ──
+function salvarRenda() {
+  const config = getConfig();
+  config.renda = parseFloat(document.getElementById('rendaInput').value) || 0;
+  salvarConfig(config);
+  atualizar();
+  toast('✓ Renda salva');
+}
+
+function salvarFundo() {
+  const config = getConfig();
+  config.fundoAtual = parseFloat(document.getElementById('fundoAtualInput').value) || 0;
+  config.fundoMeta = parseFloat(document.getElementById('fundoMetaInput').value) || 0;
+  salvarConfig(config);
+  atualizar();
+  toast('✓ Fundo atualizado');
+}
+
+function carregarConfig() {
+  const config = getConfig();
+  document.getElementById('rendaInput').value = config.renda || '';
+  document.getElementById('fundoAtualInput').value = config.fundoAtual || '';
+  document.getElementById('fundoMetaInput').value = config.fundoMeta || '';
+}
+
+function limparMes() {
+  if (!confirm('Apagar todos os lançamentos deste mês?')) return;
+  salvarDados({ transacoes: [] });
+  atualizar();
+  toast('✓ Lançamentos apagados');
+}
+
+function exportarDados() {
+  const dados = getDados();
+  const blob = new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `kairos-${MESES[mesAtual].toLowerCase()}-${anoAtual}.json`;
+  a.click();
+}
+
+// ── RENDER ──
+function atualizar() {
+  const dados = getDados();
+  const config = getConfig();
+  const ts = dados.transacoes;
+
+  document.getElementById('mesNome').textContent = MESES[mesAtual] + ' ' + anoAtual;
+
+  const entradas = ts.filter(t => t.tipo === 'entrada').reduce((s, t) => s + t.valor, 0);
+  const saidas = ts.filter(t => t.tipo === 'saida').reduce((s, t) => s + t.valor, 0);
+  const saldo = entradas - saidas;
+
+  document.getElementById('totalEntradas').textContent = fmt(entradas);
+  document.getElementById('totalSaidas').textContent = fmt(saidas);
+
+  const elSaldo = document.getElementById('saldoGeral');
+  elSaldo.textContent = fmt(saldo);
+  elSaldo.className = 'saldo-valor ' + (saldo > 0 ? 'positivo' : saldo < 0 ? 'negativo' : 'neutro');
+
+  const renda = config.renda || entradas || 1;
+  const limNec = renda * 0.5, limDes = renda * 0.3, limFut = renda * 0.2;
+
+  const gastNec = ts.filter(t => t.tipo === 'saida' && t.categoria === 'necessidades').reduce((s,t) => s+t.valor, 0);
+  const gastDes = ts.filter(t => t.tipo === 'saida' && (t.categoria === 'desejos' || t.categoria === 'outros')).reduce((s,t) => s+t.valor, 0);
+  const gastFut = ts.filter(t => t.tipo === 'saida' && (t.categoria === 'futuro' || t.categoria === 'dividas')).reduce((s,t) => s+t.valor, 0);
+
+  document.getElementById('orc-nec-gasto').textContent = fmtCurto(gastNec);
+  document.getElementById('orc-nec-limite').textContent = fmtCurto(limNec);
+  document.getElementById('orc-des-gasto').textContent = fmtCurto(gastDes);
+  document.getElementById('orc-des-limite').textContent = fmtCurto(limDes);
+  document.getElementById('orc-fut-gasto').textContent = fmtCurto(gastFut);
+  document.getElementById('orc-fut-limite').textContent = fmtCurto(limFut);
+
+  function pct(g, l) { return Math.min(100, l > 0 ? (g/l)*100 : 0); }
+
+  const bNec = document.getElementById('bar-nec');
+  const bDes = document.getElementById('bar-des');
+  const bFut = document.getElementById('bar-fut');
+
+  bNec.style.width = pct(gastNec, limNec) + '%';
+  bDes.style.width = pct(gastDes, limDes) + '%';
+  bFut.style.width = pct(gastFut, limFut) + '%';
+
+  bNec.className = 'progress-fill ' + (gastNec > limNec ? 'fill-over' : 'fill-nec');
+  bDes.className = 'progress-fill ' + (gastDes > limDes ? 'fill-over' : 'fill-des');
+  bFut.className = 'progress-fill ' + (gastFut > limFut ? 'fill-over' : 'fill-fut');
+
+  const fa = config.fundoAtual || 0;
+  const fm = config.fundoMeta || (renda * 3);
+  const fp = Math.min(100, fm > 0 ? (fa/fm)*100 : 0);
+  document.getElementById('fundoValor').textContent = fmt(fa);
+  document.getElementById('fundoMeta').textContent = `Meta: ${fmt(fm)} · ${fp.toFixed(0)}% concluído`;
+  document.getElementById('bar-fundo').style.width = fp + '%';
+
+  const lista = document.getElementById('listaTransacoes');
+  if (ts.length === 0) {
+    lista.innerHTML = `<div class="empty-state"><div class="empty-icon">◈</div><p>Nenhum lançamento este mês.<br>Toque no + para começar.</p></div>`;
+  } else {
+    const icones = { necessidades:'🏠', desejos:'✨', futuro:'🌱', dividas:'⚡', outros:'📦', entrada:'💰' };
+    const catLabel = { necessidades:'Necessidades', desejos:'Desejos', futuro:'Futuro/Poupança', dividas:'Dívidas', outros:'Outros', entrada:'Receita' };
+    lista.innerHTML = ts.map(t => `
+      <div class="transacao-item">
+        <div class="tr-icone ${t.tipo === 'entrada' ? 'entrada-bg' : 'saida-bg'}">${t.tipo === 'entrada' ? '💰' : (icones[t.categoria] || '📦')}</div>
+        <div class="tr-info">
+          <div class="tr-desc">${t.desc}</div>
+          <div class="tr-cat">${catLabel[t.categoria] || t.categoria} · ${t.data}</div>
+        </div>
+        <div class="tr-valor ${t.tipo === 'entrada' ? 'e' : 's'}">${t.tipo === 'entrada' ? '+' : '-'}${fmt(t.valor)}</div>
+        <button class="tr-delete" onclick="deletarTransacao(${t.id})">✕</button>
+      </div>`).join('');
+  }
+
+  const diaIdx = new Date().getDate() % DICAS.length;
+  document.getElementById('dicaDia').textContent = DICAS[diaIdx];
+
+  renderMetas();
+}
+
+function renderMetas() {
+  const config = getConfig();
+  const metas = config.metas || [];
+  const el = document.getElementById('listaMetas');
+  if (metas.length === 0) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">◎</div><p>Nenhuma meta criada ainda.<br>Toque no + para criar sua primeira meta.</p></div>`;
+    return;
+  }
+  el.innerHTML = metas.map(m => {
+    const pct = Math.min(100, m.alvo > 0 ? (m.atual / m.alvo) * 100 : 0);
+    return `
+      <div class="meta-card">
+        <div class="meta-header">
+          <div class="meta-nome">${m.nome}</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="meta-pct">${pct.toFixed(0)}%</span>
+            <button class="meta-delete" onclick="deletarMeta(${m.id})">✕</button>
+          </div>
+        </div>
+        <div class="progress-bar"><div class="progress-fill fill-fut" style="width:${pct}%"></div></div>
+        <div class="meta-valores">
+          <span class="meta-atual">${fmt(m.atual)} guardado</span>
+          <span>Meta: ${fmt(m.alvo)}</span>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ── TOAST ──
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ── FECHAR MODAL AO CLICAR FORA ──
+document.getElementById('modalTransacao').addEventListener('click', function(e) { if (e.target === this) fecharModal(); });
+document.getElementById('modalMeta').addEventListener('click', function(e) { if (e.target === this) fecharModalMeta(); });
+
+// ── INIT ──
+setTipo('entrada');
+verificarAcesso();
+</script>
+</body>
+</html>
