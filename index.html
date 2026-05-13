@@ -1063,6 +1063,104 @@ html, body {
   letter-spacing: 0.1em;
 }
 .btn-sair:hover { background: var(--danger-soft); }
+
+/* ── ALERTAS ── */
+.alertas-section { margin-bottom: 16px; display: flex; flex-direction: column; gap: 8px; }
+
+.alerta {
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  animation: slideIn 0.3s ease;
+}
+
+.alerta.perigo {
+  background: rgba(224,82,82,0.08);
+  border: 1px solid rgba(224,82,82,0.25);
+}
+
+.alerta.aviso {
+  background: rgba(201,168,76,0.08);
+  border: 1px solid rgba(201,168,76,0.25);
+}
+
+.alerta.info {
+  background: rgba(74,124,158,0.08);
+  border: 1px solid rgba(74,124,158,0.25);
+}
+
+.alerta.sucesso {
+  background: rgba(76,175,125,0.08);
+  border: 1px solid rgba(76,175,125,0.25);
+}
+
+.alerta-icone { font-size: 18px; flex-shrink: 0; line-height: 1.4; }
+
+.alerta-corpo { flex: 1; min-width: 0; }
+
+.alerta-titulo {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 2px;
+  letter-spacing: 0.02em;
+}
+
+.alerta.perigo .alerta-titulo { color: var(--danger); }
+.alerta.aviso .alerta-titulo { color: var(--gold); }
+.alerta.info .alerta-titulo { color: #4A7C9E; }
+.alerta.sucesso .alerta-titulo { color: var(--success); }
+
+.alerta-msg {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.alerta-dica {
+  font-size: 11px;
+  color: var(--white2);
+  line-height: 1.5;
+  margin-top: 4px;
+  font-style: italic;
+}
+
+.alerta-lista {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.alerta-lista-item {
+  font-size: 11px;
+  color: var(--white2);
+  padding-left: 12px;
+  position: relative;
+  line-height: 1.5;
+}
+
+.alerta-lista-item::before {
+  content: '·';
+  position: absolute;
+  left: 3px;
+  color: var(--gold);
+}
+
+.alertas-vazio {
+  text-align: center;
+  padding: 12px;
+  font-size: 12px;
+  color: var(--success);
+  background: rgba(76,175,125,0.06);
+  border: 1px solid rgba(76,175,125,0.2);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
 </style>
 </head>
 <body>
@@ -1131,6 +1229,9 @@ html, body {
         <div class="rc-valor saida" id="totalSaidas">R$ 0,00</div>
       </div>
     </div>
+
+    <!-- ALERTAS INTELIGENTES -->
+    <div id="alertasSection" class="alertas-section"></div>
 
     <!-- ORÇAMENTO 50/30/20 -->
     <div class="orcamento-section">
@@ -1991,6 +2092,144 @@ function exportarDados() {
   a.click();
 }
 
+// ── ALERTAS INTELIGENTES ──
+const DICAS_CAT = {
+  necessidades: [
+    'Pesquise promoções antes de ir ao mercado — apps como Offerwise ajudam a comparar preços.',
+    'Revise contratos de internet e celular: muitas operadoras oferecem planos melhores para quem negocia.',
+    'Cozinhar em casa em vez de pedir delivery pode economizar até 60% nas refeições.',
+    'Agrupe viagens e comissões para reduzir custos de transporte no mês.',
+  ],
+  desejos: [
+    'Antes de comprar algo por impulso, espere 48h. Se ainda quiser, aí é real.',
+    'Revise assinaturas de streaming — você usa todos que paga?',
+    'Defina um valor mensal fixo para lazer. Curtir dentro do limite não gera culpa.',
+    'Troque uma saída cara por uma experiência mais barata — parques, picnics, eventos gratuitos.',
+  ],
+  dividas: [
+    'Ligue para o credor e negocie: muitas dívidas têm desconto de até 50% à vista.',
+    'Evite o mínimo do cartão de crédito — os juros chegam a 400% ao ano.',
+    'Use o método Bola de Neve: quite a menor dívida primeiro para ganhar motivação.',
+    'Considere portabilidade de crédito para trocar dívidas caras por taxas menores.',
+  ],
+  futuro: [
+    'Automatize sua poupança: transfira no dia do pagamento antes de gastar.',
+    'Mesmo R$ 50/mês investido com consistência gera riqueza no longo prazo.',
+    'Tesouro Selic é seguro, rende mais que poupança e tem liquidez diária.',
+    'Revise suas metas de poupança trimestralmente e aumente quando possível.',
+  ],
+  outros: [
+    'Categorize melhor seus gastos para entender onde o dinheiro está indo.',
+    'Gastos sem categoria são os mais perigosos — eles somam mais do que parecem.',
+    'Revise os lançamentos em "Outros" e reclassifique nas categorias corretas.',
+  ],
+};
+
+function renderAlertas(ts, entradas, saidas, renda) {
+  const el = document.getElementById('alertasSection');
+  const alertas = [];
+
+  // 1. PENDENTES — lançamentos futuros não baixados
+  const pendentes = ts.filter(t => t.status === 'futuro');
+  const totalPendente = pendentes.reduce((s, t) => s + t.valor, 0);
+
+  if (pendentes.length > 0) {
+    const itensPendentes = pendentes.slice(0, 3).map(t =>
+      `<div class="alerta-lista-item">${t.tipo === 'entrada' ? '↑' : '↓'} ${t.desc} · ${fmt(t.valor)} · ${t.data}</div>`
+    ).join('');
+    const mais = pendentes.length > 3 ? `<div class="alerta-lista-item">+${pendentes.length - 3} outros...</div>` : '';
+
+    alertas.push(`
+      <div class="alerta info">
+        <span class="alerta-icone">⏳</span>
+        <div class="alerta-corpo">
+          <div class="alerta-titulo">${pendentes.length} lançamento${pendentes.length > 1 ? 's' : ''} pendente${pendentes.length > 1 ? 's' : ''} — ${fmt(totalPendente)}</div>
+          <div class="alerta-msg">Ainda não foram baixados este mês:</div>
+          <div class="alerta-lista">${itensPendentes}${mais}</div>
+        </div>
+      </div>`);
+  }
+
+  // 2. SAÚDE FINANCEIRA
+  const base = renda > 0 ? renda : entradas;
+
+  if (base > 0) {
+    const pctGasto = saidas / base;
+
+    if (saidas > entradas && entradas > 0) {
+      alertas.push(`
+        <div class="alerta perigo">
+          <span class="alerta-icone">🚨</span>
+          <div class="alerta-corpo">
+            <div class="alerta-titulo">Gastos maiores que as receitas!</div>
+            <div class="alerta-msg">Você gastou <strong style="color:var(--danger)">${fmt(saidas - entradas)}</strong> a mais do que recebeu este mês. Revise seus lançamentos e corte o que for possível.</div>
+          </div>
+        </div>`);
+    } else if (pctGasto > 0.9 && entradas > 0) {
+      alertas.push(`
+        <div class="alerta aviso">
+          <span class="alerta-icone">⚠️</span>
+          <div class="alerta-corpo">
+            <div class="alerta-titulo">Atenção: ${(pctGasto * 100).toFixed(0)}% da renda comprometida</div>
+            <div class="alerta-msg">Você já usou quase toda a sua renda. Restam apenas <strong style="color:var(--gold)">${fmt(entradas - saidas)}</strong>. Cuidado com novos gastos até o fim do mês.</div>
+          </div>
+        </div>`);
+    } else if (pctGasto > 0.7 && entradas > 0) {
+      alertas.push(`
+        <div class="alerta aviso">
+          <span class="alerta-icone">📊</span>
+          <div class="alerta-corpo">
+            <div class="alerta-titulo">${(pctGasto * 100).toFixed(0)}% da renda utilizada</div>
+            <div class="alerta-msg">Controle razoável, mas fique atento. Ainda tem <strong style="color:var(--gold)">${fmt(entradas - saidas)}</strong> disponível no mês.</div>
+          </div>
+        </div>`);
+    } else if (entradas > 0 && saidas > 0) {
+      alertas.push(`
+        <div class="alerta sucesso">
+          <span class="alerta-icone">✅</span>
+          <div class="alerta-corpo">
+            <div class="alerta-titulo">Ótimo controle este mês!</div>
+            <div class="alerta-msg">Você usou apenas <strong style="color:var(--success)">${(pctGasto * 100).toFixed(0)}%</strong> da sua renda. Saldo positivo de <strong style="color:var(--success)">${fmt(entradas - saidas)}</strong>. Continue assim!</div>
+          </div>
+        </div>`);
+    }
+  }
+
+  // 3. MAIOR GASTO DO MÊS por categoria
+  const porCat = {};
+  ts.filter(t => t.tipo === 'saida' && t.status !== 'futuro').forEach(t => {
+    porCat[t.categoria] = (porCat[t.categoria] || 0) + t.valor;
+  });
+
+  if (Object.keys(porCat).length > 0) {
+    const maiorCat = Object.entries(porCat).sort((a, b) => b[1] - a[1])[0];
+    const [cat, valor] = maiorCat;
+    const dicasCat = DICAS_CAT[cat] || DICAS_CAT['outros'];
+    const dica = dicasCat[new Date().getDate() % dicasCat.length];
+    const catLabel = { necessidades:'🏠 Necessidades', desejos:'✨ Desejos', futuro:'🌱 Poupança', dividas:'⚡ Dívidas', outros:'📦 Outros' };
+    const pctCat = entradas > 0 ? ((valor / entradas) * 100).toFixed(0) : 0;
+
+    alertas.push(`
+      <div class="alerta aviso">
+        <span class="alerta-icone">📌</span>
+        <div class="alerta-corpo">
+          <div class="alerta-titulo">Maior gasto: ${catLabel[cat] || cat} — ${fmt(valor)} (${pctCat}% da receita)</div>
+          <div class="alerta-msg">Esta categoria concentrou mais saídas no mês.</div>
+          <div class="alerta-dica">💡 ${dica}</div>
+        </div>
+      </div>`);
+  }
+
+  // Renderiza
+  if (alertas.length === 0 && entradas === 0 && saidas === 0) {
+    el.innerHTML = '';
+  } else if (alertas.length === 0) {
+    el.innerHTML = `<div class="alertas-vazio">✦ Tudo sob controle — sem alertas este mês</div>`;
+  } else {
+    el.innerHTML = alertas.join('');
+  }
+}
+
 // ── RENDER ──
 function atualizar() {
   const dados = getDados();
@@ -2009,6 +2248,9 @@ function atualizar() {
   const elSaldo = document.getElementById('saldoGeral');
   elSaldo.textContent = fmt(saldo);
   elSaldo.className = 'saldo-valor ' + (saldo > 0 ? 'positivo' : saldo < 0 ? 'negativo' : 'neutro');
+
+  // Alertas inteligentes
+  renderAlertas(ts, entradas, saidas, config.renda || 0);
 
   const renda = config.renda || entradas || 1;
   const limNec = renda * 0.5, limDes = renda * 0.3, limFut = renda * 0.2;
