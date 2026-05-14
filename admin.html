@@ -293,7 +293,7 @@ function sair(){
 // ── CARREGAR ──
 async function carregarEmails(){
   document.getElementById('tabelaContent').innerHTML=`<div class="loading"><div class="loading-ring"></div><p style="font-size:12px">Carregando...</p></div>`;
-  const{data,error}=await sb.rpc('admin_listar_emails');
+  const{data,error}=await sb.from('emails_autorizados').select('*').order('created_at',{ascending:false});
   if(error){
     document.getElementById('tabelaContent').innerHTML=`<div class="loading"><p style="color:var(--danger)">Erro ao carregar: ${error.message}</p></div>`;
     return;
@@ -390,7 +390,10 @@ async function salvarLicenca(){
   const btn=document.getElementById('btnConfirmar');
   if(!email||!email.includes('@')){toast('Informe um e-mail válido');return;}
   btn.disabled=true;btn.textContent='Salvando...';
-  const{error}=await sb.rpc('admin_adicionar_email',{p_email:email,p_nome:nome||null,p_observacao:obs||null});
+  const{error}=await sb.from('emails_autorizados').upsert(
+    {email:email, nome_cliente:nome||null, observacao:obs||null, ativo:true},
+    {onConflict:'email'}
+  );
   if(error){toast('Erro: '+error.message);btn.disabled=false;btn.textContent='Liberar acesso →';return;}
   fecharModal();
   await carregarEmails();
@@ -405,7 +408,7 @@ function toggleEmail(id,ativar,email){
     ativar?`Ativar acesso de ${email}?`:`Bloquear acesso de ${email}? O cliente não conseguirá mais entrar.`,
     !ativar,
     async()=>{
-      const{error}=await sb.rpc('admin_toggle_email',{p_id:id,p_ativo:ativar});
+      const{error}=await sb.from('emails_autorizados').update({ativo:ativar}).eq('id',id);
       if(error){toast('Erro: '+error.message);return;}
       await carregarEmails();
       toast(ativar?`✓ Acesso de ${email} ativado!`:`✓ Acesso de ${email} bloqueado.`);
@@ -415,8 +418,8 @@ function toggleEmail(id,ativar,email){
 
 // ── EXCLUIR ──
 function excluirEmail(id,email){
-  confirmar('🗑️','Excluir licença',`Remover permanentemente o acesso de ${email}? Esta ação não pode ser desfeita.`,true,async()=>{
-    const{error}=await sb.rpc('admin_deletar_email',{p_id:id});
+  confirmar('🗑️','Excluir licença',`Remover permanentemente o acesso de ${email}?`,true,async()=>{
+    const{error}=await sb.from('emails_autorizados').delete().eq('id',id);
     if(error){toast('Erro: '+error.message);return;}
     await carregarEmails();
     toast(`✓ Licença de ${email} removida.`);
